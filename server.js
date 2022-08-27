@@ -3,6 +3,7 @@ const { Server: HttpServer } = require('http')
 const { Server: IOServer } = require('socket.io')
 const Contenedor = require('./src/controllers/contenedorMsg.js')
 const Container = require('./src/controllers/contenedorProd.js')
+const carts = require('./src/controllers/contenedorCarts')
 const app = express()
 const httpServer = new HttpServer(app)
 const io = new IOServer(httpServer)
@@ -10,6 +11,8 @@ const usersList = require('./src/controllers/contenedorUsers')
 const session = require('express-session')
 const connectMongo = require('connect-mongo')
 const cookieParser = require('cookie-parser')
+const ruta1 = require('./src/router/routes')
+const ruta2 = require('./src/router/routeCarrito')
 const advancedOptions = { useNewUrlParser: true, useUnifiedTopology: true }
 const MongoStorage = connectMongo.create({
     mongoUrl: 'mongodb+srv://tobyceballos:coderhouse@cluster0.erpbj.mongodb.net/Cluster0?retryWrites=true&w=majority',
@@ -17,8 +20,6 @@ const MongoStorage = connectMongo.create({
     ttl: 600
 })
 const minimist = require('./src/config/minimist')
-const path = require('path')
-const { fork } = require('child_process')
 
 
 app.use(
@@ -28,7 +29,7 @@ app.use(
         resave: false,
         saveUninitialized: false,
         cookie: {
-            maxAge: 60000 * 10
+            maxAge: 60000 * 60
         },
     })
 );
@@ -36,9 +37,7 @@ app.use(
 //---------------------------------------------------//
 const passport = require('passport')
 const { Strategy: LocalStrategy } = require('passport-local')
-const { info } = require('console')
 //---------------------------------------------------//
-
 
 
 passport.use('register', new LocalStrategy({
@@ -83,7 +82,6 @@ passport.deserializeUser(function (user, done) {
     done(null, user);
 });
 
-
 app.use(passport.initialize())
 app.use(passport.session())
 app.set('view engine', 'ejs')
@@ -91,111 +89,13 @@ app.use(cookieParser())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static('./src/public'))
+app.use(ruta1)
+app.use('/carritos',ruta2)
 
-function isAuth(req, res, next) {
-    if (req.isAuthenticated()) {
-        next()
-    } else {
-        res.redirect('/login')
-    }
-}
-
-
-app.get('/register', async (req, res) => {
-    res.render('register')
-})
-
-app.post('/register', passport.authenticate('register', { failureRedirect: '/failregister', successRedirect: '/login' }))
-
-app.get('/failregister', async (req, res) => {
-    res.render('register-error')
-})
-
-//---------------------------------------------------//
-// RUTAS LOGIN
-
-app.get('/login', async (req, res) => {
-    res.render('login')
-})
-
-app.post('/login', passport.authenticate('login', { failureRedirect: '/faillogin', successRedirect: '/datos' }))
-
-app.get('/faillogin', async (req, res) => {
-    res.render('login-error')
-})
-
-//---------------------------------------------------//
-// RUTAS DATOS
-
-app.get('/datos', isAuth, async (req, res) => {
-    const user = req.user.user
-    console.log(user)
-    const email = req.user.email
-    const avatar = req.user.avatar
-
-    const datos = { user, email, avatar }
-    res.render('index', {datos})
-})
-
-//---------------------------------------------------//
-// RUTAS LOGOUT
-
-app.get('/logout', async (req, res) => {
-    req.logout(err => {
-        req.session.destroy()
-        res.redirect('/login')
-    })
-})
-
-//---------------------------------------------------//
-// RUTAS INICIO
-
-app.get('/', async(req, res) => {
-    res.redirect('/datos')
-})
-
-//---------------------------------------------------//
-// RUTAS INFO
-
-app.get('/info', async(req, res) => {
-    const processId = process.pid
-    const nodeVersion = process.version
-    const operativeSystem = process.platform
-    const usedMemory = process.memoryUsage().rss
-    const currentPath = process.cwd()
-
-    const info = { processId, nodeVersion, operativeSystem, usedMemory, currentPath }
-    res.render('info', {info})
-})
-
-
-app.get('/randoms', async(req, res) => {
-    const cant = req.query.cant || 100000000
-    const computo = fork(path.resolve(__dirname, './src/fork/getRamdoms.js'))
-    computo.on('message', numbers => {
-        if(numbers === 'listo') {
-        computo.send(cant)
-        } else {
-        res.json({numbers})
-        }
-    })
-})
-
-// CUENTA
-
-app.get('/account', async(req, res) => {
-    const email = req.user.email
-    const avatar = req.user.avatar
-    const user = req.user.user
-    const phone = req.user.phone
-    const direction = req.user.direction
-    const age = req.user.age
-    
-    const datos = { email, avatar, user, phone, direction, age}
-    res.render('account', {datos})
-})
 
 io.on('connection', async (sockets) => {
+    sockets.emit('cart', await carts.getCartById('valen'))
+
     sockets.emit('product', await Container.getProds())
     console.log('Un cliente se ha conectado!: ' + sockets.id)
     // div
@@ -223,11 +123,13 @@ io.on('connection', async (sockets) => {
 
         io.sockets.emit('messages', await Contenedor.getMsg())
     })
+
+    sockets.on('new-prod2cart', async rend => {
+
+
+        io.sockets.emit('cart', await carts.getCartById('valen'))
+    })
 })
-
-
-
-
 
 const PORT = minimist.datosArgs.puerto
 httpServer.listen(PORT, () => console.log('Iniciando en el puerto: ' + PORT))

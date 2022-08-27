@@ -1,65 +1,14 @@
 
 const express = require("express")
 const { Router } = express
-const Container = require('../controllers/contenedorProd.js')
-const usersList = require('../controllers/contenedorUsers')
 const ruta = new Router()
-//---------------------------------------------------//
-// RUTAS REGISTRO
-//---------------------------------------------------//
+const passport = require('passport')
+const container = require('../controllers/contenedorProd')
+const carts = require('../controllers/contenedorCarts');
+const fork = require('fork')
+const path = require('path')
 
-ruta.get('/register', (req, res) => {
-    res.render('register')
-})
-
-ruta.post('/register', async (req, res) => {
-    const { user, email, password } = req.body
-    req.session.name = user
-
-    console.log(email)
-    const usuarios = await usersList.getUsers()
-    const usuario = usuarios.find(usuario => usuario.email == email)
-    if (usuario) {
-        return res.render('register-error')
-    }
-
-    await usersList.saveUser({ user, email, password })
-    res.redirect('/login')
-})
-
-//---------------------------------------------------//
-// RUTAS LOGIN
-//---------------------------------------------------//
-
-ruta.get('/login', (req, res) => {
-    if (req.isAuthenticated()) {
-        res.redirect('/datos')
-    }
-    res.render('login')
-})
-
-ruta.post('/login', async (req, res) => {
-    const { email, password } = req.body
-
-    req.session.email = email
-    
-    const usuarios = await usersList.getUsers()
-    const usuario = usuarios.find(
-        usuario => usuario.email == email && usuario.password == password
-    )
-    if (!usuario) {
-        console.log(usuarios)
-        return res.render('login-error')
-    }
-    req.session.user = usuario.user
-    res.redirect('/datos')
-})
-
-//---------------------------------------------------//
-// RUTAS DATOS
-//---------------------------------------------------//
-
-async function requireAuthentication(req, res, next) {
+function isAuth(req, res, next) {
     if (req.isAuthenticated()) {
         next()
     } else {
@@ -67,44 +16,110 @@ async function requireAuthentication(req, res, next) {
     }
 }
 
-async function includeUserData(req, res, next) {
-    if (req.session.email) {
-        const usuarios = await usersList.getUsers()
-        req.user = usuarios.find(usuario => usuario.email == req.session.email)
-    }
-    next()
-}
+ruta.get('/register', async (req, res) => {
+    res.render('register')
+})
 
-ruta.get('/datos', requireAuthentication, includeUserData, async (req, res) => {
-    const user = req.session.user
+ruta.post('/register', passport.authenticate('register', { failureRedirect: '/failregister', successRedirect: '/login' }))
+
+ruta.get('/failregister', async (req, res) => {
+    res.render('register-error')
+})
+
+//---------------------------------------------------//
+// RUTAS LOGIN
+
+ruta.get('/login', async (req, res) => {
+    res.render('login')
+})
+
+ruta.post('/login', passport.authenticate('login', { failureRedirect: '/faillogin', successRedirect: '/datos' }))
+
+ruta.get('/faillogin', async (req, res) => {
+    res.render('login-error')
+})
+
+//---------------------------------------------------//
+// RUTAS DATOS
+
+ruta.get('/datos', isAuth, async (req, res) => {
+    const user = req.user.user
     console.log(user)
-    const email = req.session.email
-    const datos = { user, email }
+    const email = req.user.email
+    const avatar = req.user.avatar
+
+    const datos = { user, email, avatar }
     res.render('index', {datos})
 })
 
 //---------------------------------------------------//
 // RUTAS LOGOUT
-//---------------------------------------------------//
 
-ruta.get('/logout', (req, res) => {
+ruta.get('/logout', async (req, res) => {
     req.logout(err => {
+        req.session.destroy()
         res.redirect('/login')
     })
 })
 
 //---------------------------------------------------//
-// RUTA INICIO
-//---------------------------------------------------//
+// RUTAS INICIO
 
-ruta.get('/', (req, res) => {
+ruta.get('/', async(req, res) => {
     res.redirect('/datos')
+})
+
+//---------------------------------------------------//
+// RUTAS INFO
+
+ruta.get('/info', async(req, res) => {
+    const processId = process.pid
+    const nodeVersion = process.version
+    const operativeSystem = process.platform
+    const usedMemory = process.memoryUsage().rss
+    const currentPath = process.cwd()
+
+    const info = { processId, nodeVersion, operativeSystem, usedMemory, currentPath }
+    res.render('info', {info})
+})
+
+
+ruta.get('/randoms', async(req, res) => {
+    const cant = req.query.cant || 10000
+    const computo = fork(path.resolve(__dirname, './src/fork/getRamdoms.js'))
+    computo.on('message', numbers => {
+        if(numbers === 'listo') {
+        computo.send(cant)
+        } else {
+        res.json({numbers})
+        }
+    })
+})
+
+// CUENTA
+
+ruta.get('/account', async(req, res) => {
+    const email = req.user.email
+    const avatar = req.user.avatar
+    const user = req.user.user
+    const phone = req.user.phone
+    const direction = req.user.direction
+    const age = req.user.age
+    
+    const datos = { email, avatar, user, phone, direction, age}
+    res.render('account', {datos})
 })
 
 ruta.get('/delete/:id', async (req, res) => {
-    const idDelete = req.params.id
-    const deleteId = await Container.deleteById(idDelete)
+    const deleteProd = req.params.id
+    const deleted = container.deleteById(deleteProd)
     res.redirect('/datos')
 })
+
+
+
+
+
+
 
 module.exports = ruta

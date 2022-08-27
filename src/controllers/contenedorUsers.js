@@ -4,6 +4,8 @@ const models = require('../models/schemaUser');
 
 const moment = require('moment');
 
+const carts = require('./contenedorCarts');
+
 mongoose.connect('mongodb+srv://tobyceballos:coderhouse@cluster0.erpbj.mongodb.net/Cluster0?retryWrites=true&w=majority')
 
 
@@ -24,6 +26,7 @@ class Contenedor {
             password: password,
             direction: direction
         }
+        await carts.crearCarrito(user)
 
         const saves = await this.collection.insertMany(newUser)
         return saves

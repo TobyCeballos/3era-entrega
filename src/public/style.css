@@ -16,13 +16,17 @@
 }
 
 .color__darkblue {
-    color: rgb(28, 28, 84);
+    color: rgb(52, 52, 187);
 }
 
 .img__card{
     height:unset !important;
 }
 
+.chat__err {
+    text-align: center;
+    background: #fcfcfc;
+}
 
 
 .scroll__modifier::-webkit-scrollbar {

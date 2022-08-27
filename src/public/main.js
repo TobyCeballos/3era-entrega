@@ -30,8 +30,10 @@ function render(data) {
                         <li class="list-group-item">Codigo: ${elem.id}</li>
                         <li class="list-group-item">Precio: $ ${elem.price}</li>
                     </ul>
-                    <div class="card-body">
-                        <a href="#" class="btn btn-primary w-100">Comprar</a>
+                    <div class="d-flex card-body">
+                        <a href="#" class="btn btn-primary w-50">Comprar</a>
+                        <button onclick="return addProdCart(${elem.id})" class="btn btn-outlined-secondary material-symbols-outlined">add_shopping_cart</button>
+                        <a href="/delete/${elem.id}" class="btn btn-outline-danger material-symbols-outlined">delete</a>
                     </div>
                 </div>`)
             }).join(" ")
@@ -70,7 +72,7 @@ function renders(dato) {
                 return(`
                 <div class="row">
                     <div class="col-2">
-                        <p class="fs-6 color__darkblue">${element.email} </p>
+                        <p class="fs-6 color__darkblue">${element.email} :</p>
                     </div>
                     <div class="col-8 gx-0">
                         <p class="fs-6 text-start">${element.text}</p>
@@ -94,3 +96,56 @@ function renders(dato) {
 }
 
 sockets.on("messages", function(dato) {renders(dato)})
+
+///
+
+async function addProdCart(prod) {
+    const contenedor = require('../controllers/contenedorCarts')
+    const cart = "valen"
+    console.log(cart, prod)
+    const p2c = await contenedor.saveProdId(cart,prod)
+    console.log(prodCart)
+    sockets.emit("new-prod2cart", prodCart);
+    return false
+}
+
+function renderCart(rend) {
+    try {
+        if(dato.length > 0){
+            const html2 = dato.map((prodData) => {
+                return(`
+                <div class="card" style="max-width: 400px;">
+                    <div class="row g-0">
+                        <div class="col-md-4">
+                            <img src="${prodData.thumbnail}"
+                                class="img-fluid rounded-start" alt="...">
+                        </div>
+                        <div class="col-md-8 d-flex">
+                            <div class="card-body">
+                                <h5 class="card-title">${prodData.name}</h5>
+                                <p class="card-text">Precio: $${prodData.price}</p>
+                            </div>
+                            <div class="">
+                                <a href="/delete/${prodData.id}"
+                                    class="btn btn-outline-danger material-symbols-outlined"
+                                    style="max-height: 40px;">delete</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>`)
+            }).join(" ")
+        
+            document.getElementById("cart").innerHTML = html2
+        } else {
+            const errHtml = `<p class="chat__err">Aún no hay mensajes :( ¡Sé el primero en enviar uno!</p>`
+            
+            document.getElementById("cart").innerHTML = errHtml
+        }
+        
+    } catch (err) {
+        console.log(err)
+    }
+}
+
+sockets.on("cart", function(rend) {renderCart(rend)})
+
