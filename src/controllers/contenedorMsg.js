@@ -4,8 +4,9 @@ const models = require('../models/schemaMsg');
 
 const moment = require('moment');
 
-mongoose.connect('mongodb+srv://tobyceballos:coderhouse@cluster0.erpbj.mongodb.net/Cluster0?retryWrites=true&w=majority')
 
+require('dotenv').config()
+mongoose.connect(`${process.env.DB_URL}`)
 
 
 class Contenedor {

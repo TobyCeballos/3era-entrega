@@ -4,9 +4,12 @@ const models = require('../models/schemaCarts');
 
 const moment = require('moment');
 
-const container = require('./contenedorProd.js')
+const container = require('./contenedorProd.js');
+const { json } = require('express');
+const { remove } = require('../models/schemaProd');
 
-mongoose.connect('mongodb+srv://tobyceballos:coderhouse@cluster0.erpbj.mongodb.net/Cluster0?retryWrites=true&w=majority')
+require('dotenv').config()
+mongoose.connect(`${process.env.DB_URL}`)
 
 
 class Carts {
@@ -15,104 +18,119 @@ class Carts {
     }
 
     async getAllCarts() {
-        try{
+        try {
             const obj = await this.collection.find()
             return obj
         }
-        catch(err){
+        catch (err) {
             return error;
         }
     }
 
-    async crearCarrito(nameId){
-        try{
-
-            const newCarrito ={
+    async crearCarrito(nameId) {
+        try {
+            const newCarrito = {
                 id: nameId,
-                timestamp: moment().format('YYYY-MM-DD HH:mm:ss'),
-                productos:[]
+                productos: ''
             }
-
             const add = await this.collection.insertMany(newCarrito)
-
             console.log(`Carrito creado exitosamente`);
-
-            return add;
-
-        }
-        catch(err){
+            return add
+        } catch (err) {
             console.log(`${err} Error en la funcion crearCarrito`);
         }
     }
 
-//    async deleteCartByID(id) {
-//        try {
-//            const deleteCart = await this.collection.doc(id).delete();
-//            return `Carrito ${id} eliminado`;
-//        } catch (error) {
-//            return error;
-//        }
-//    }
+    //    async deleteCartByID(id) {
+    //        try {
+    //            const deleteCart = await this.collection.doc(id).delete();
+    //            return `Carrito ${id} eliminado`;
+    //        } catch (error) {
+    //            return error;
+    //        }
+    //    }
 
     async getCartById(id) {
-        try{
-            const elemento = await this.collection.find({id: id}, {_id:0, __v:0})
+        try {
+            const elemento = await this.collection.find({ id: id }, { _id: 0, __v: 0 })
 
-            return elemento 
-        } catch(err){
+            return elemento
+        } catch (err) {
+            return err;
+        }
+    }
+
+    async getProdsOfCarts(id) {
+        try {
+            const elemento = await this.collection.find({ id: id }, { _id: 0, productos: 1 })
+            return elemento
+        } catch (err) {
             return err;
         }
     }
 
 
-    async getByIdProds(id) {
-        try{
-            const query = await this.collection.doc(id.toString()).collection('prod').get();
-            let fileExist = query.docs;
+    async saveProdId(id_carrito, id_prod) {
+        try {
+            const arrProducts = await this.getProdsOfCarts(id_carrito)
+            const jsonStr = JSON.stringify(arrProducts, null, 2)
+            const str = jsonStr.substring(1, jsonStr.length - 1)
 
-            if(fileExist.length >= 0){
-                let objs = fileExist.map(doc =>({
-                    id: doc.id,
-                    ...doc.data()
-                }))
-                return objs
-            }else{
-                console.log("No se encontraron productos")
+            const nose = JSON.parse(str)
+            const prod = nose.productos
+            if (prod.length > 0) {
+                const producto = await container.getProdById(id_prod);
+                const prodStr = JSON.stringify(producto)
+                const str = prodStr.substring(1, prodStr.length - 1)
+                const newArray = []
+                newArray.push(prod, str)
+                const agregado = await this.collection.updateOne({ id: id_carrito }, { $set: { productos: `${newArray}` } });
+                return agregado;
+            } else {
+                const producto = await container.getProdById(id_prod);
+                const stringProd = JSON.stringify(producto)
+                const str = stringProd.substring(1, stringProd.length - 1)
+                const agregado = await this.collection.updateOne({ id: id_carrito }, { $set: { productos: str } });
+                return agregado;
             }
-        } catch(err){
-            return err;
+        }
+        catch (err) {
+            console.log(`${err} Error en la funcion saveProdId`)
         }
     }
 
-    async saveProdId(id_carrito, id_prod){
-        try{
-            const producto = await container.getProdById(id_prod);
-            const Obj = producto.keys(producto)
-            for(let i=0; i< Obj.length; i++){
-                console.log(Obj[i]);
-              }
-
-            const agregado = await this.collection.updateOne( {id: id_carrito}, {$push: {productos: {/*name: name, price: price, */id: id_prod/*, thumbnail: thumbnail*/}} } );
-            return agregado;
-
+    async deleteProdById(id_carrito, id_prod) {
+        try {
+            const arrProducts = await this.getProdsOfCarts(id_carrito)
+            const jsonStr = JSON.stringify(arrProducts, null, 2)
+            const str = jsonStr.substring(1, jsonStr.length - 1)
+            const nose = JSON.parse(str)
+            const prod = nose.productos
+            const prods = JSON.parse('[' + prod + ']')
+            if(prods.length > 1) {
+                const del = prods.findIndex((item) => item.id == id_prod)
+                await prods.splice(-1, del)
+                const string = JSON.stringify(prods)
+                const string2 = string.substring(1, string.length - 1)
+                const removed = await this.collection.updateOne({ id: id_carrito }, { $set: { productos: string2 } });
+                return removed;
+            } else {
+                const removed = await this.clearCart(id_carrito)
+                return removed;
+            }
         }
-        catch(err){
-            console.log(`${err} Error en la funcion prodAlCarrito`)
+        catch (err) {
+            console.log(`${err} Error en la funcion deleteProdById`)
         }
     }
 
-    async deleteProdById(id_carrito, id_prod){
-        try{
-
-            const producto = await container.getProdById(id_prod);
-
-            const string = [];
-
-            const hecho = await this.coleccion.updateOne( {id_carrito}, {$pull: {productos: string} } );
-            return hecho;
-        }
-        catch(err){
-            console.log(`${err} Error en la funcion deleteProdDeCarrito`)
+    async clearCart(idCart) {
+        try {
+            const vacio = ''
+            const removed = await this.collection.updateOne({ id: idCart }, { $set: { productos: vacio } });
+            return removed;
+        } catch (error) {
+            return error;
         }
     }
 }

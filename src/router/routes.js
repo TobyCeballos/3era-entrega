@@ -44,7 +44,6 @@ ruta.get('/faillogin', async (req, res) => {
 
 ruta.get('/datos', isAuth, async (req, res) => {
     const user = req.user.user
-    console.log(user)
     const email = req.user.email
     const avatar = req.user.avatar
 
@@ -72,7 +71,7 @@ ruta.get('/', async(req, res) => {
 //---------------------------------------------------//
 // RUTAS INFO
 
-ruta.get('/info', async(req, res) => {
+ruta.get('/info', isAuth, async(req, res) => {
     const processId = process.pid
     const nodeVersion = process.version
     const operativeSystem = process.platform
@@ -84,7 +83,7 @@ ruta.get('/info', async(req, res) => {
 })
 
 
-ruta.get('/randoms', async(req, res) => {
+ruta.get('/randoms', isAuth, async(req, res) => {
     const cant = req.query.cant || 10000
     const computo = fork(path.resolve(__dirname, './src/fork/getRamdoms.js'))
     computo.on('message', numbers => {
@@ -98,7 +97,7 @@ ruta.get('/randoms', async(req, res) => {
 
 // CUENTA
 
-ruta.get('/account', async(req, res) => {
+ruta.get('/account', isAuth, async(req, res) => {
     const email = req.user.email
     const avatar = req.user.avatar
     const user = req.user.user
@@ -117,9 +116,24 @@ ruta.get('/delete/:id', async (req, res) => {
 })
 
 
+ruta.get('/cart', isAuth, async (req, res) => {
+    const email = req.user.email
+    const avatar = req.user.avatar
+    const user = req.user.user
+    const phone = req.user.phone
+    const direction = req.user.direction
+    const age = req.user.age
+    
+    const datos = { email, avatar, user, phone, direction, age}
+    const prodCart = await carts.getProdsOfCarts(user)
 
+    const jsonStr = JSON.stringify(prodCart, null, 2)
+    const str =jsonStr.substring(1,jsonStr.length - 1)
 
-
-
+    const nose = JSON.parse(str, null, 2)
+    const car = nose.productos
+    const carros = JSON.parse('[' + car + ']')
+    res.render('cart', {datos, carros})
+})
 
 module.exports = ruta

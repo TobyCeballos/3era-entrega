@@ -15,12 +15,12 @@ const ruta1 = require('./src/router/routes')
 const ruta2 = require('./src/router/routeCarrito')
 const advancedOptions = { useNewUrlParser: true, useUnifiedTopology: true }
 const MongoStorage = connectMongo.create({
-    mongoUrl: 'mongodb+srv://tobyceballos:coderhouse@cluster0.erpbj.mongodb.net/Cluster0?retryWrites=true&w=majority',
+    mongoUrl: `${process.env.DB_URL}`,
     mongoOptions: advancedOptions,
     ttl: 600
 })
 const minimist = require('./src/config/minimist')
-
+const sendMailToAdmin = require('./src/controllers/contenedorNMail')
 
 app.use(
     session({
@@ -55,6 +55,16 @@ passport.use('register', new LocalStrategy({
         const avatar = req.body.avatar
         const phone = req.body.phone
         const direction = req.body.direction
+        const asunto = 'Nuevo usuario registrado en CRM - Chat'
+        const mensaje = `El usuario ${user} se ha registrado.
+        Informe del registro:
+        - Usuario: ${user}
+        - Edad: ${age}
+        - Avatar: ${avatar}
+        - Teléfono: ${phone}
+        - Dirección: ${direction}
+        - Correo: ${email}`
+        const mail = await sendMailToAdmin(asunto, mensaje)
         const saved = await usersList.saveUser({ user, email, age, avatar, phone, password, direction });
         done(null, saved);
     }
@@ -94,8 +104,6 @@ app.use('/carritos',ruta2)
 
 
 io.on('connection', async (sockets) => {
-    sockets.emit('cart', await carts.getCartById('valen'))
-
     sockets.emit('product', await Container.getProds())
     console.log('Un cliente se ha conectado!: ' + sockets.id)
     // div
@@ -122,12 +130,6 @@ io.on('connection', async (sockets) => {
         await Contenedor.saveMsj(email, text, fecha, hora)
 
         io.sockets.emit('messages', await Contenedor.getMsg())
-    })
-
-    sockets.on('new-prod2cart', async rend => {
-
-
-        io.sockets.emit('cart', await carts.getCartById('valen'))
     })
 })
 
