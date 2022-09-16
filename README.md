@@ -1,7 +1,6 @@
 # Desafio de Chat y Listado de Productos con WebSockets
 
 ## ¡Importante!
-Crear una database en en MySQL llamada "db-ecommerce" y despues seguir estos pasos  
 ·Instalar las dependencias con npm usando el siguiente comando:
 ```
 npm i
@@ -13,14 +12,18 @@ npm run dev
 
 ## .env template
 
-```
-DB_URL = mongodb+srv://tobyceballos:coderhouse@cluster0.erpbj.mongodb.net/Cluster0?retryWrites=true&w=majority
-SERVER_EMAIL = denis.jacobs@ethereal.email
-SERVER_PASS = 356PESUt7KwVEwrdYV
-ADMIN_EMAIL = denis.jacobs@ethereal.email
-ACCOUNT_SID = ACd8499e0b80023556e0a8836b1fb2fd6c
-AUTH_TOKEN = f06e7b3204a177fe92181ef37d790ce8
-ADMIN_NUMBER = +5492266544486
+```# Database settings
+DB_URL = 
+
+# NodeMailer settings
+SERVER_EMAIL = 
+SERVER_PASS = 
+ADMIN_EMAIL =
+
+# Twilio settings
+ACCOUNT_SID = 
+AUTH_TOKEN = 
+ADMIN_NUMBER =
 ```
 
 
