@@ -12,7 +12,8 @@ npm run dev
 
 ## .env template
 
-```# Database settings
+```
+# Database settings
 DB_URL = 
 
 # NodeMailer settings
