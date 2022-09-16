@@ -35,9 +35,9 @@ function render(data) {
                         <li class="list-group-item">Codigo: ${elem.id}</li>
                         <li class="list-group-item">Precio: $ ${elem.price}</li>
                     </ul>
-                    <div class="d-flex card-body">
+                    <div class="d-flex card-body" style="height: 80px" >
                         <a href="#" class="btn btn-primary w-50">Comprar</a>
-                        <a href="/carritos/Tobi/productos/${elem.id}" style="height: 50px" class="btn btn-outlined-secondary material-symbols-outlined">add_shopping_cart</a>
+                        <a href="/carritos/Tobi/productos/${elem.id}" class="btn btn-outlined-secondary material-symbols-outlined">add_shopping_cart</a>
                         <a href="/delete/${elem.id}" class="btn btn-outline-danger material-symbols-outlined">delete</a>
                     </div>
                 </div>`)

@@ -19,6 +19,9 @@ const MongoStorage = connectMongo.create({
     mongoOptions: advancedOptions,
     ttl: 600
 })
+
+const favicon = require('serve-favicon');
+const loggers = require('log4js')
 const minimist = require('./src/config/minimist')
 const sendMailToAdmin = require('./src/controllers/contenedorNMail')
 
@@ -33,6 +36,13 @@ app.use(
         },
     })
 );
+
+
+//-----------------loggers---------------------------//
+
+
+// app.use(logger('dev'));
+app.use(loggers.connectLogger(loggers.getLogger("http"), { level: 'auto' }));
 
 //---------------------------------------------------//
 const passport = require('passport')
@@ -99,6 +109,8 @@ app.use(cookieParser())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static('./src/public'))
+
+app.use(favicon('./src/public/img/TC-logo-light.png'));
 app.use(ruta1)
 app.use('/carritos',ruta2)
 

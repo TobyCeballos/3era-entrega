@@ -30,8 +30,10 @@
     "nodemon": "^2.0.16",
     "passport": "^0.6.0",
     "passport-local": "^1.0.0",
+    "serve-favicon": "^2.5.0",
     "socket.io": "^4.5.1",
     "sqlite3": "^5.0.8",
+    "static-favicon": "^2.0.0-alpha",
     "twilio": "^3.82.0"
   },
   "repository": {
